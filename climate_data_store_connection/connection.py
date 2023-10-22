@@ -23,10 +23,10 @@ class ClimateDataStoreConnection(ExperimentalBaseConnection[cdsapi.api.Client]):
 
             data = xr.open_dataset(path)
             df = data.to_dataframe()
-            df.reset_index(inplace=True)
+            # df.reset_index(inplace=True)
 
-            df.index = pd.to_datetime(df['time'])
-            df = df.drop(columns=['longitude', 'latitude', 'time'])
+            # df.index = pd.to_datetime(df['time'])
+            #df = df.drop(columns=['longitude', 'latitude', 'time'])
 
             return df
 
