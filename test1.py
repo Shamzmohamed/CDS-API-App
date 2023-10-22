@@ -117,30 +117,30 @@ if submitted:
             ],
         }
 
-        with st.spinner("Fetching weather data..."):
-            conn = st.experimental_connection("", type=ClimateDataStoreConnection)
-            df = conn.query(data)
-            variable_names = df.columns.tolist()
-            print("Variable Names:")
-            for variable in variable_names:
-                print(variable)
-            with st.spinner("Plotting..."):
-                if "t2m" in df.columns:
-                    df["t2m"] = df["t2m"] - 273.15
-                    # Filter the data for the selected location (latitude and longitude)
-                    location_data = df[(df['latitude'] == selected_latitude) & (df['longitude'] == selected_longitude)]
+with st.spinner("Fetching weather data..."):
+    conn = st.experimental_connection("", type=ClimateDataStoreConnection)
+    data = conn.query(query_param)  # Assuming 'query_param' is the query parameters
 
-                    monthly_avg = location_data.resample('M').mean()
-                    fig = px.line(x=monthly_avg.index, y=monthly_avg['t2m'], labels={'x': 'Month', 'y': 'Temperature (°C)'},
-                                  title="Monthly Average Temperature for the Selected Location")
-                    st.plotly_chart(fig, use_container_width=True)
+    variable_names = list(data.keys())  # Access variable names from the 'xarray.Dataset'
 
-                df.columns = [param_mapping_op[c] for c in df.columns]
-                for i in range(df.shape[1]):
-                    fig = px.line(x=df.index, y=df.iloc[:, i], labels={'x':'Time', 'y':df.columns[i]},
-                                   title="Time series plot of "+df.columns[i])
-                    st.plotly_chart(fig, use_container_width=True)
-            
+    print("Variable Names:")
+    for variable in variable_names:
+        print(variable)
 
-else:
-    st.error("Select a minimum of 1 weather parameter")
+    with st.spinner("Plotting..."):
+        if "t2m" in variable_names:
+            # You can access the 't2m' variable using data['t2m']
+            t2m_data = data['t2m'] - 273.15  # Adjust temperature to Celsius if needed
+
+            # Filter the data for the selected location (latitude and longitude)
+            location_data = t2m_data.sel(latitude=selected_latitude, longitude=selected_longitude, method="nearest")
+
+            # Calculate monthly averages
+            monthly_avg = location_data.resample(time="M").mean()
+
+            # Create a line plot
+            fig = px.line(x=monthly_avg.time, y=monthly_avg, labels={'x': 'Month', 'y': 'Temperature (°C)'},
+                          title="Monthly Average Temperature for the Selected Location")
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.error("Select a minimum of 1 weather parameter")
