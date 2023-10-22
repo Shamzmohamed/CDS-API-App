@@ -17,7 +17,6 @@ shapefile_path = '/home/mohamed/Documents/data/rheine-erft.shp'
 gdf = gpd.read_file(shapefile_path)
 
 # Plot the shapefile on the map
-
 with st.form("data_fetch_api"):
     col1, col2 = st.columns(2)
 
@@ -129,7 +128,7 @@ if submitted:
                 if "t2m" in df.columns:
                     df["t2m"] = df["t2m"] - 273.15
                     # Filter the data for the selected location (latitude and longitude)
-                    location_data = df[(df['lat'] == selected_latitude) & (df['lon'] == selected_longitude)]
+                    location_data = df[(df['latitude'] == selected_latitude) & (df['longitude'] == selected_longitude)]
 
                     monthly_avg = location_data.resample('M').mean()
                     fig = px.line(x=monthly_avg.index, y=monthly_avg['t2m'], labels={'x': 'Month', 'y': 'Temperature (°C)'},

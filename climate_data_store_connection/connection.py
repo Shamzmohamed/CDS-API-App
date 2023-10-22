@@ -18,34 +18,20 @@ class ClimateDataStoreConnection(ExperimentalBaseConnection[cdsapi.api.Client]):
         return self._instance.retrieve
     
     def query(self, query_param):
-
-        def _parse_data(path: str) -> pd.DataFrame:
-
-            data = xr.open_dataset(path)
-            df = data.to_dataframe()
-            # df.reset_index(inplace=True)
-
-            # df.index = pd.to_datetime(df['time'])
-            #df = df.drop(columns=['longitude', 'latitude', 'time'])
-
-            return df
-
         query_param['product_type'] = 'reanalysis'
         query_param['format'] = 'netcdf'
 
-        # adding time in file name to avoid overlapping
-        data_path = 'download_'+str(datetime.now()).replace(":","-")+'.nc'
+    # Create a unique file name to avoid overwriting existing data
+    data_path = 'download_' + str(datetime.now()).replace(":", "-") + '.nc'
 
-        ret = self.retrieve()
+    ret = self.retrieve()
 
-        ret('reanalysis-era5-single-levels',
-            query_param,
-            data_path)
-        
-        final_df = _parse_data(data_path)
+    ret('reanalysis-era5-single-levels', query_param, data_path)
 
-        # deleting NetCDF file to free up space
-        os.remove(data_path)
+    # Open the downloaded NetCDF file without any filtering or modification
+    data = xr.open_dataset(data_path)
 
-        return final_df
-        
+    # Remove the downloaded NetCDF file to free up space (if needed)
+    os.remove(data_path)
+
+    return data 
