@@ -1,4 +1,8 @@
 # Total precipitation added
+# 23 Okt - 15.44 successfully visualized the variables: longitude
+# latitude
+# time
+# t2m
 import streamlit as st
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
@@ -13,7 +17,7 @@ from climate_data_store_connection import ClimateDataStoreConnection
 st.set_page_config(page_title="CDS API", page_icon="🌤️")
 
 st.title("ClimateDataStoreConnection")
-shapefile_path = '/home/mohamed/Documents/data/rheine-erft.shp'
+shapefile_path = "/home/mohamed/Documents/data/rheine-erft.shp"
 gdf = gpd.read_file(shapefile_path)
 
 # Plot the shapefile on the map
@@ -76,71 +80,48 @@ if submitted:
             "tp": "Total Precipitation (mm)",
         }
 
+        # Preparing dictionary to send to API
         data = {
-            "product_type": "reanalysis",
-            "format": "netcdf",
-            "variable": [param_mapping_ip[p] for p in params],
-            "year": [str(date.year)],
-            "month": [str(date.month)],
-            "day": [str(date.day)],
-            "time": [
-                "00:00",
-                "01:00",
-                "02:00",
-                "03:00",
-                "04:00",
-                "05:00",
-                "06:00",
-                "07:00",
-                "08:00",
-                "09:00",
-                "10:00",
-                "11:00",
-                "12:00",
-                "13:00",
-                "14:00",
-                "15:00",
-                "16:00",
-                "17:00",
-                "18:00",
-                "19:00",
-                "20:00",
-                "21:00",
-                "22:00",
-                "23:00",
-            ],
-            "area": [
-                selected_latitude,
-                selected_longitude,
-                selected_latitude,
-                selected_longitude,
-            ],
-        }
+                'product_type': 'reanalysis',
+                'format': 'netcdf',
 
-with st.spinner("Fetching weather data..."):
-    conn = st.experimental_connection("", type=ClimateDataStoreConnection)
-    data = conn.query(query_param)  # Assuming 'query_param' is the query parameters
+                'variable': [param_mapping_ip[p] for p in params],
+                'year': [
+                    str(date.year),
+                ],
+                'month': [
+                    str(date.month),
+                ],
+                'day': [
+                    str(date.day),
+                ],
+                'time': [
+                    '00:00', '01:00', '02:00',
+                    '03:00', '04:00', '05:00',
+                    '06:00', '07:00', '08:00',
+                    '09:00', '10:00', '11:00',
+                    '12:00', '13:00', '14:00',
+                    '15:00', '16:00', '17:00',
+                    '18:00', '19:00', '20:00',
+                    '21:00', '22:00', '23:00',
+                ],
+                'area': [
+                    selected_latitude, selected_longitude, 
+                    selected_latitude,selected_longitude,
+                ],
+                }
 
-    variable_names = list(data.keys())  # Access variable names from the 'xarray.Dataset'
+        with st.spinner("Fetching weather data..."):
 
-    print("Variable Names:")
-    for variable in variable_names:
-        print(variable)
+            # Connection to API
+            conn = st.experimental_connection("", type = ClimateDataStoreConnection)
+            data = conn.query(data)
+            variable_names = list(data.columns)
+            print("Variable Names:")
+            for variable in variable_names:
+                print(variable)
 
-    with st.spinner("Plotting..."):
-        if "t2m" in variable_names:
-            # You can access the 't2m' variable using data['t2m']
-            t2m_data = data['t2m'] - 273.15  # Adjust temperature to Celsius if needed
+    # with st.spinner("Plotting..."):
 
-            # Filter the data for the selected location (latitude and longitude)
-            location_data = t2m_data.sel(latitude=selected_latitude, longitude=selected_longitude, method="nearest")
-
-            # Calculate monthly averages
-            monthly_avg = location_data.resample(time="M").mean()
-
-            # Create a line plot
-            fig = px.line(x=monthly_avg.time, y=monthly_avg, labels={'x': 'Month', 'y': 'Temperature (°C)'},
-                          title="Monthly Average Temperature for the Selected Location")
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.error("Select a minimum of 1 weather parameter")
+        # else:
+        #     st.error("Select a minimum of 1 weather parameter")
