@@ -17,8 +17,6 @@ from climate_data_store_connection import ClimateDataStoreConnection
 st.set_page_config(page_title="CDS API", page_icon="🌤️")
 
 st.title("ClimateDataStoreConnection")
-shapefile_path = "/home/mohamed/Documents/data/rheine-erft.shp"
-gdf = gpd.read_file(shapefile_path)
 
 # Plot the shapefile on the map
 with st.form("data_fetch_api"):
@@ -56,7 +54,6 @@ with st.form("data_fetch_api"):
 
     f_map = st_folium(m, width=670, height=500)
     folium.LayerControl().add_to(m)
-    folium.GeoJson(gdf).add_to(m)
     selected_latitude = DEFAULT_LATITUDE
     selected_longitude = DEFAULT_LONGITUDE
 
@@ -120,8 +117,6 @@ if submitted:
             print("Variable Names:")
             for variable in variable_names:
                 print(variable)
-
-    # with st.spinner("Plotting..."):
-
-        # else:
-        #     st.error("Select a minimum of 1 weather parameter")
+                #with st.spinner("Plotting..."):
+                    # else:
+                    # st.error("Select a minimum of 1 weather parameter")
