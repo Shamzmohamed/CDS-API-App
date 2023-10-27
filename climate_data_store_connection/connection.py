@@ -13,15 +13,7 @@ class ClimateDataStoreConnection(ExperimentalBaseConnection[cdsapi.api.Client]):
     def retrieve(self) -> cdsapi.api.Client.retrieve:
         return self._instance.retrieve
     
-    def query(self, query_param):
-        def _parse_data(path: str) -> pd.DataFrame:
-
-            data = xr.open_dataset(path)
-            df = data.to_dataframe()
-            # df.reset_index(inplace=True)
-            # df.index = pd.to_datetime(df['time'])
-            # df = df.drop(columns=['longitude', 'latitude', 'time'])
-            return df
+    def query(self, query_param,output_file):
 
         query_param['product_type'] = 'reanalysis'
         query_param['format'] = 'netcdf'
