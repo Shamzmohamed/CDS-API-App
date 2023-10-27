@@ -36,9 +36,6 @@ class ClimateDataStoreConnection(ExperimentalBaseConnection[cdsapi.api.Client]):
             query_param,
             data_path)
         final_df = _parse_data(data_path)
-
-        # deleting NetCDF file to free up space
-        os.remove(data_path)
-
+        
         return final_df
         
