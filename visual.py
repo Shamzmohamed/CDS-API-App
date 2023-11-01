@@ -1,106 +1,85 @@
-# Total precipitation added
-import streamlit as st
+# netcdf file visualization working but using matplotlib not as Interactive Map
+import pandas as pd
 from datetime import datetime, timedelta
-from streamlit_folium import st_folium
-import folium
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
 import plotly.express as px
+import streamlit as st
+from netCDF4 import Dataset as NetCDFFile
 
-from climate_data_store_connection import ClimateDataStoreConnection
+# Provide the path to your own NetCDF file
+file_path = '/home/mohamed/Documents/ERA5/Data/t2m_201801.nc'
 
-st.set_page_config(page_title="CDS API", page_icon="🌤️")
+# Load the NetCDF file
+nc = NetCDFFile(file_path)
 
-st.title("ClimateDataStoreConnection")
+# Access the "t2m" variable
+t2m = nc.variables["t2m"][:]
 
-with st.form("data_fetch_api"):
+# Access the "time" variable
+time = nc.variables["time"][:]
 
-    col1, col2 = st.columns(2)
+# Access the "lon" and "lat" variables
+lon = nc.variables["longitude"][:]
+lat = nc.variables["latitude"][:]
 
-    params = st.multiselect(
-        'Select Weather Parameters', help="CDS offers many parameter but few selected for demo purpose.",
-        options=['Ambient Temperature (°C)', 'Dew Point Temperature (°C)', 'Surface Pressure (kPa)', 'Total Precipitation (mm)'])
+# # Function to convert time
+# def convert_time(t):
+#     specific_date = datetime(2023, 10, 17,0, 0, 0)
+#     new_time = specific_date + timedelta(hours=int(t))
+#     return new_time
+# Access the "time" variable
+time = nc.variables["time"][:]
+time_units = nc.variables["time"].units  # This should give you the time unit
 
-    date = st.date_input('Select a date',
-                         value=datetime.today() - timedelta(days=6),
-                         min_value=datetime.fromisoformat('2023-01-01'),
-                         max_value=datetime.today() - timedelta(days=6))
-    
-    st.write("Click on map to select location")
-    
-    # https://franekjemiolo.pl/using-selected-position-map-form-streamlit/
-    DEFAULT_LATITUDE = 51.96
-    DEFAULT_LONGITUDE = 7.62
+# Function to convert time
+def convert_time(t):
+    origin_date = pd.to_datetime(time_units.split("since")[-1].strip())  # Extract and parse the origin date
+    new_time = origin_date + pd.to_timedelta(t, unit=time_units.split("since")[0].strip())
+    return new_time
 
-    m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], zoom_start=8)
+# Function to format time for display
+def id_to_time(i):
+    return convert_time(time[i])
 
-    # The code below will be responsible for displaying 
-    # the popup with the latitude and longitude shown
-    m.add_child(folium.LatLngPopup())
+# Streamlit caching for plot
+@st.cache
+def plotly_plot(time_idx):
+    fig = go.Figure(data=go.Heatmap(x=lon, y=lat, z=t2m[time_idx]))
+    return fig
 
-    f_map = st_folium(m, width=670, height=500)
+# Get the available description attribute or provide a default description
+description = getattr(nc, 'description', 'No description available')
 
-    selected_latitude = DEFAULT_LATITUDE
-    selected_longitude = DEFAULT_LONGITUDE
+# Display the title and description
+st.title("2 Meter Temperature Data")  # You can set a custom title here
+st.header("Description")
+st.write(description)
 
-    submitted = st.form_submit_button("Submit")
+# Create a slider for selecting a specific date
+time_id = st.select_slider("Date", options=range(len(time)), format_func=id_to_time)
 
-if submitted:
-    st.success(f"Selected location: {selected_latitude}, {selected_longitude}")
-    weather_map = folium.Map(location=[selected_latitude, selected_longitude], zoom_start=8)
+t2m_1d = t2m[time_id].flatten()
 
-    temperature_group = folium.FeatureGroup(name="Temperature")
-    precipitation_group = folium.FeatureGroup(name="Precipitation")
+# Flatten lon and lat arrays to match the dimensions of t2m
+lon_grid, lat_grid = np.meshgrid(lon, lat)
+lon_1d = lon_grid.flatten()
+lat_1d = lat_grid.flatten()
 
-    if params:  
-        param_mapping_ip = {
-            "Ambient Temperature (°C)": "2m_temperature", "Dew Point Temperature (°C)": "2m_dewpoint_temperature",
-            "Surface Pressure (kPa)": "surface_pressure", "Total Precipitation (mm)": "total_precipitation"}
+# Ensure all arrays have the same length
+if len(lon_1d) != len(lat_1d) or len(lat_1d) != len(t2m_1d):
+    raise ValueError("All arrays must be of the same length")
 
-        param_mapping_op = {
-            "t2m": "Ambient Temperature (°C)",
-            "d2m": "Dew Point Temperature (°C)",
-            "sp": "Surface Pressure (kPa)",
-            "tp": "Total Precipitation (mm)"
-        }
+# Create a heatmap using Matplotlib
+fig, ax = plt.subplots(figsize=(18, 10))
+extent = [lon.min(), lon.max(), lat.min(), lat.max()]
+heatmap = ax.imshow(t2m[time_id], extent=extent, cmap='RdBu_r', aspect='auto')
+plt.colorbar(heatmap, ax=ax, label='Temperature (°C)')
+ax.set_title(f'2 Meter Temperature on {id_to_time(time_id)}')  # Use the formatted time
+ax.set_xlabel('Longitude', fontsize=16, fontweight='bold')
+ax.set_ylabel('Latitude', fontsize=16, fontweight='bold')
 
-        data = {
-            'product_type': 'reanalysis',
-            'format': 'netcdf',
-            'variable': [param_mapping_ip[p] for p in params],
-            'year': [str(date.year)],
-            'month': [str(date.month)],
-            'day': [str(date.day)],
-            'time': [
-                '00:00', '01:00', '02:00',
-                '03:00', '04:00', '05:00',
-                '06:00', '07:00', '08:00',
-                '09:00', '10:00', '11:00',
-                '12:00', '13:00', '14:00',
-                '15:00', '16:00', '17:00',
-                '18:00', '19:00', '20:00',
-                '21:00', '22:00', '23:00',
-            ],
-            'area': [
-                selected_latitude, selected_longitude, 
-                selected_latitude, selected_longitude,
-            ],
-        }
-        
-        with st.spinner("Fetching weather data..."):
-            conn = st.experimental_connection("", type=ClimateDataStoreConnection)
-            df = conn.query(data)
-
-            with st.spinner("Plotting..."):
-                if "t2m" in df.columns:
-                    df["t2m"] = df["t2m"] - 273.15
-                if "d2m" in df.columns:
-                    df["d2m"] = df["d2m"] - 273.15
-                if "sp" in df.columns:
-                    df["sp"] = df["sp"] / 1000
-
-                df.columns = [param_mapping_op[c] for c in df.columns]
-                for i in range(df.shape[1]):
-                                        fig = px.line(x=df.index, y=df.iloc[:, i], labels={'x':'Time', 'y':df.columns[i]},
-                                   title="Time series plot of "+df.columns[i])
-                                        st.plotly_chart(fig, use_container_width=True)
-else:
-    st.error("Select a minimum of 1 weather parameter")
+# Display the Matplotlib plot in Streamlit
+st.pyplot(fig)
