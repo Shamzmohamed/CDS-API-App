@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 from datetime import datetime, timedelta
 from streamlit_folium import st_folium, folium_static
 import folium
