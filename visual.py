@@ -10,7 +10,7 @@ import streamlit as st
 from netCDF4 import Dataset as NetCDFFile
 
 # Provide the path to your own NetCDF file
-file_path = '/home/mohamed/Documents/ERA5/Data/t2m_201801.nc'
+file_path = '/home/mohamed/Documents/ERA5/Data/t2m_201801.nc' 
 
 # Load the NetCDF file 
 nc = NetCDFFile(file_path)
